@@ -15,7 +15,8 @@
 
     <div class="container mt-5">
         <h1 class="text-center">Registro de Usuario</h1>
-        <form action="/register" method="post" class="mt-4 needs-validation" novalidate>
+        <!-- Asegúrate de agregar la acción y el método POST -->
+        <form id="registerForm" action="/register" method="POST" class="mt-4 needs-validation" novalidate>
             <div class="mb-3">
                 <label for="nombre" class="form-label">Nombre:</label>
                 <input type="text" id="nombre" name="nombre" class="form-control" placeholder="Ingrese su nombre completo" required>
@@ -54,10 +55,29 @@
                 </div>
             </div>
             <div class="d-flex justify-content-between">
-                <button type="submit" class="btn btn-primary">Registrar</button>
-                <button type="reset" class="btn btn-secondary">Limpiar</button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">Limpiar</button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#confirmRegisterModal">Registrar</button>
             </div>
         </form>
+    </div>
+
+    <!-- Modal de confirmación -->
+    <div class="modal fade" id="confirmRegisterModal" tabindex="-1" aria-labelledby="confirmRegisterModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="confirmRegisterModalLabel">Confirmar registro</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            ¿Estás seguro de que deseas registrar al nuevo usuario?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="submitRegisterForm()">Registrar</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Agregar Bootstrap JS -->
@@ -79,7 +99,23 @@
             }
         });
 
-        // Bootstrap validation
+        // Función para reiniciar el formulario
+        function resetForm() {
+            document.getElementById('registerForm').reset();
+            document.getElementById('registerForm').classList.remove('was-validated');
+        }
+
+        // Función para enviar el formulario si es válido
+        function submitRegisterForm() {
+            const form = document.getElementById('registerForm');
+            if (form.checkValidity()) {
+                form.submit(); // Enviar el formulario
+            } else {
+                form.classList.add('was-validated'); // Agregar validación visual
+            }
+        }
+
+        // Validación de Bootstraps
         (function () {
             'use strict'
             var forms = document.querySelectorAll('.needs-validation')

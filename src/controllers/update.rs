@@ -5,6 +5,8 @@ use serde::Deserialize;
 use bcrypt::{hash, DEFAULT_COST};
 use std::env;
 use dotenv::dotenv;
+use log::error;
+use actix_web::http::header;
 
 // Estructura para capturar los datos del formulario de actualización
 #[derive(Deserialize)]
@@ -20,7 +22,7 @@ pub struct UpdateFormData {
 pub async fn show_update_form() -> impl Responder {
     // Cargar la plantilla de actualización
     let html = include_str!("../templates/update_user.html");
-    
+
     // Cargar el componente navbar
     let navbar = include_str!("../components/navbar.html");
 
@@ -33,18 +35,55 @@ pub async fn show_update_form() -> impl Responder {
 
 // Ruta para procesar la actualización de usuario
 pub async fn update_user(form: web::Form<UpdateFormData>) -> impl Responder {
-    dotenv().ok();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL no está definida");
+    dotenv().ok(); // Cargar variables de entorno como la conexión a la base de datos
 
-    let opts = Opts::from_url(&database_url).expect("URL de la base de datos no es válida");
-    let pool = Pool::new(opts).expect("No se pudo crear el pool de conexiones");
-    let mut conn = pool.get_conn().unwrap();
+    // Obtener la URL de la base de datos del archivo .env
+    let database_url = match env::var("DATABASE_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            error!("DATABASE_URL no está definida");
+            return HttpResponse::InternalServerError().body("Error al conectarse a la base de datos.");
+        }
+    };
 
-    // Encripta la nueva contraseña
-    let hashed_password = hash(&form.password, DEFAULT_COST).unwrap();
+    // Crear las opciones de conexión
+    let opts = match Opts::from_url(&database_url) {
+        Ok(opts) => opts,
+        Err(_) => {
+            error!("URL de la base de datos no es válida");
+            return HttpResponse::InternalServerError().body("Error al conectarse a la base de datos.");
+        }
+    };
 
-    // Actualiza los datos del usuario en la base de datos
-    conn.exec_drop(
+    // Crear el pool de conexiones
+    let pool = match Pool::new(opts) {
+        Ok(pool) => pool,
+        Err(_) => {
+            error!("No se pudo crear el pool de conexiones");
+            return HttpResponse::InternalServerError().body("Error al conectarse a la base de datos.");
+        }
+    };
+
+    // Obtener la conexión
+    let mut conn = match pool.get_conn() {
+        Ok(conn) => conn,
+        Err(_) => {
+            error!("No se pudo obtener una conexión de la base de datos");
+            return HttpResponse::InternalServerError().body("Error al conectarse a la base de datos.");
+        }
+    };
+
+    // Encriptar la nueva contraseña con bcrypt
+    let hashed_password = match hash(&form.password, DEFAULT_COST) {
+        Ok(hashed) => hashed,
+        Err(_) => {
+            error!("Error al encriptar la contraseña");
+            return HttpResponse::InternalServerError().body("Error al procesar la solicitud.");
+        }
+    };
+
+    // Ejecutar la consulta de actualización
+    match conn.exec_drop(
         r"UPDATE usuarios SET nombre=:nombre, email=:email, password=:password, rol=:rol WHERE id=:id",
         params! {
             "id" => form.id,
@@ -53,7 +92,16 @@ pub async fn update_user(form: web::Form<UpdateFormData>) -> impl Responder {
             "password" => &hashed_password,
             "rol" => &form.rol,
         },
-    ).unwrap();
-
-    HttpResponse::Ok().body("Usuario actualizado con éxito.")
+    ) {
+        Ok(_) => {
+            // Redirigir a la página principal con un parámetro de éxito
+            HttpResponse::Found()
+                .append_header((header::LOCATION, "/update_form?success=true"))
+                .finish()
+        },
+        Err(_) => {
+            error!("No se pudo actualizar el usuario en la base de datos");
+            HttpResponse::InternalServerError().body("Error al actualizar el usuario.")
+        }
+    }
 }

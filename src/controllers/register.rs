@@ -5,6 +5,8 @@ use serde::Deserialize;
 use bcrypt::{hash, DEFAULT_COST};
 use std::env;
 use dotenv::dotenv;
+use log::error;
+use actix_web::http::header;
 
 // Estructura para capturar los datos del formulario de registro
 #[derive(Deserialize)]
@@ -33,17 +35,53 @@ pub async fn show_form() -> impl Responder {
 // Ruta para procesar el formulario de registro
 pub async fn register_user(form: web::Form<FormData>) -> impl Responder {
     dotenv().ok();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL no está definida");
 
-    let opts = Opts::from_url(&database_url).expect("URL de la base de datos no es válida");
-    let pool = Pool::new(opts).expect("No se pudo crear el pool de conexiones");
-    let mut conn = pool.get_conn().unwrap();
+    // Obtener la URL de la base de datos del archivo .env
+    let database_url = match env::var("DATABASE_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            error!("DATABASE_URL no está definida");
+            return HttpResponse::InternalServerError().body("Error al conectarse a la base de datos.");
+        }
+    };
 
-    // Encripta la contraseña
-    let hashed_password = hash(&form.password, DEFAULT_COST).unwrap();
+    // Crear las opciones de conexión
+    let opts = match Opts::from_url(&database_url) {
+        Ok(opts) => opts,
+        Err(_) => {
+            error!("URL de la base de datos no es válida");
+            return HttpResponse::InternalServerError().body("Error al conectarse a la base de datos.");
+        }
+    };
 
-    // Inserta los datos en la base de datos
-    conn.exec_drop(
+    // Crear el pool de conexiones
+    let pool = match Pool::new(opts) {
+        Ok(pool) => pool,
+        Err(_) => {
+            error!("No se pudo crear el pool de conexiones");
+            return HttpResponse::InternalServerError().body("Error al conectarse a la base de datos.");
+        }
+    };
+
+    let mut conn = match pool.get_conn() {
+        Ok(conn) => conn,
+        Err(_) => {
+            error!("No se pudo obtener una conexión de la base de datos");
+            return HttpResponse::InternalServerError().body("Error al conectarse a la base de datos.");
+        }
+    };
+
+    // Encriptar la contraseña con bcrypt
+    let hashed_password = match hash(&form.password, DEFAULT_COST) {
+        Ok(hashed) => hashed,
+        Err(_) => {
+            error!("No se pudo encriptar la contraseña");
+            return HttpResponse::InternalServerError().body("Error al procesar la solicitud.");
+        }
+    };
+
+    // Ejecutar la consulta de inserción
+    match conn.exec_drop(
         r"INSERT INTO usuarios (nombre, email, password, rol) VALUES (:nombre, :email, :password, :rol)",
         params! {
             "nombre" => &form.nombre,
@@ -51,7 +89,16 @@ pub async fn register_user(form: web::Form<FormData>) -> impl Responder {
             "password" => &hashed_password,
             "rol" => &form.rol,
         },
-    ).unwrap();
-
-    HttpResponse::Ok().body("Usuario registrado con éxito.")
+    ) {
+        Ok(_) => {
+            // Redirigir a la página de registro con un parámetro de éxito
+            HttpResponse::Found()
+                .append_header((header::LOCATION, "/?success=true"))
+                .finish()
+        },
+        Err(_) => {
+            error!("No se pudo insertar el usuario en la base de datos");
+            HttpResponse::InternalServerError().body("Error al registrar el usuario.")
+        }
+    }
 }

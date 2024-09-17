@@ -15,7 +15,8 @@
 
     <div class="container mt-5">
         <h1 class="text-center">Actualizar Usuario</h1>
-        <form id="updateForm" class="mt-4 needs-validation" novalidate>
+        <!-- Asegúrate de agregar la acción y el método POST -->
+        <form id="updateForm" action="/update_user" method="POST" class="mt-4 needs-validation" novalidate>
             <div class="mb-3">
                 <label for="id" class="form-label">ID del Usuario:</label>
                 <input type="text" id="id" name="id" class="form-control" placeholder="Ingrese el ID del usuario" required>

@@ -13,9 +13,9 @@ async fn main() -> std::io::Result<()> {
             .route("/", web::get().to(register::show_form)) // Muestra el formulario de registro
             .route("/register", web::post().to(register::register_user)) // Procesa el registro de usuario
             .route("/update_form", web::get().to(update::show_update_form)) // Muestra el formulario de actualización
-            .route("/update", web::post().to(update::update_user)) // Procesa la actualización de usuario
+            .route("/update_user", web::post().to(update::update_user)) // Procesa la actualización de usuario
             .route("/delete_form", web::get().to(delete::show_delete_form)) // Muestra el formulario de eliminación
-            .route("/delete", web::post().to(delete::delete_user)) // Procesa la eliminación de usuario
+            .route("/delete_user", web::post().to(delete::delete_user)) // Procesa la eliminación de usuario
     })
     .bind(url)?
     .run()

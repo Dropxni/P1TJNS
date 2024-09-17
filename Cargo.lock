@@ -9,6 +9,7 @@ dependencies = [
  "actix-web",
  "bcrypt",
  "dotenv",
+ "log",
  "mysql",
  "rocket",
  "serde",
