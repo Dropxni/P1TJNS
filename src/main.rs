@@ -1,7 +1,7 @@
-mod controllers; // Importa el módulo controllers
+mod controllers; // Importacion de el módulo controllers
 
-use actix_web::{web, App, HttpServer}; // Asegúrate de importar actix_web correctamente
-use controllers::{register, update, delete}; // Importa los submódulos
+use actix_web::{web, App, HttpServer}; // Importacion de actix_web
+use controllers::{register, update, delete}; // Importacion de los submódulos
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
