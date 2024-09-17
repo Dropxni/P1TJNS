@@ -13,8 +13,17 @@ pub struct DeleteFormData {
 
 // Ruta para mostrar el formulario de eliminación
 pub async fn show_delete_form() -> impl Responder {
+    // Cargar la plantilla de eliminación
     let html = include_str!("../templates/delete_user.html");
-    HttpResponse::Ok().content_type("text/html").body(html)
+    
+    // Cargar el componente navbar
+    let navbar = include_str!("../components/navbar.html");
+
+    // Reemplazar {{navbar}} con el contenido real del navbar
+    let html_with_navbar = html.replace("{{navbar}}", navbar);
+
+    // Devolver la página con el navbar incluido
+    HttpResponse::Ok().content_type("text/html").body(html_with_navbar)
 }
 
 // Ruta para procesar la eliminación de usuario
@@ -26,7 +35,7 @@ pub async fn delete_user(form: web::Form<DeleteFormData>) -> impl Responder {
     let pool = Pool::new(opts).expect("No se pudo crear el pool de conexiones");
     let mut conn = pool.get_conn().unwrap();
 
-    // Elimina el usuario de la base de datos
+    // Elimina el usuario de la base de datos por ID
     conn.exec_drop(
         r"DELETE FROM usuarios WHERE id=:id",
         params! {

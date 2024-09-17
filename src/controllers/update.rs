@@ -18,8 +18,17 @@ pub struct UpdateFormData {
 
 // Ruta para mostrar el formulario de actualización
 pub async fn show_update_form() -> impl Responder {
+    // Cargar la plantilla de actualización
     let html = include_str!("../templates/update_user.html");
-    HttpResponse::Ok().content_type("text/html").body(html)
+    
+    // Cargar el componente navbar
+    let navbar = include_str!("../components/navbar.html");
+
+    // Reemplazar {{navbar}} con el contenido real del navbar
+    let html_with_navbar = html.replace("{{navbar}}", navbar);
+
+    // Devolver la página con el navbar incluido
+    HttpResponse::Ok().content_type("text/html").body(html_with_navbar)
 }
 
 // Ruta para procesar la actualización de usuario
@@ -34,7 +43,7 @@ pub async fn update_user(form: web::Form<UpdateFormData>) -> impl Responder {
     // Encripta la nueva contraseña
     let hashed_password = hash(&form.password, DEFAULT_COST).unwrap();
 
-    // Actualiza los datos en la base de datos
+    // Actualiza los datos del usuario en la base de datos
     conn.exec_drop(
         r"UPDATE usuarios SET nombre=:nombre, email=:email, password=:password, rol=:rol WHERE id=:id",
         params! {

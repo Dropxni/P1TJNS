@@ -17,8 +17,17 @@ pub struct FormData {
 
 // Ruta para mostrar el formulario de registro
 pub async fn show_form() -> impl Responder {
+    // Cargar la plantilla de registro
     let html = include_str!("../templates/register.html");
-    HttpResponse::Ok().content_type("text/html").body(html)
+    
+    // Cargar el componente navbar
+    let navbar = include_str!("../components/navbar.html");
+
+    // Reemplazar {{navbar}} con el contenido real del navbar
+    let html_with_navbar = html.replace("{{navbar}}", navbar);
+
+    // Devolver la página con el navbar incluido
+    HttpResponse::Ok().content_type("text/html").body(html_with_navbar)
 }
 
 // Ruta para procesar el formulario de registro
